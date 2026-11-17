@@ -3,59 +3,371 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#059669">
-  <title>Solat & Ganti Tracker</title>
+  <meta name="theme-color" content="#1e5c45">
+  <title>Solat Tracker</title>
   <link rel="manifest" href="manifest.json">
   <style>
-    :root { --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --accent: #059669; --border: #e2e8f0; }
-    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); max-width: 420px; margin: 0 auto; padding: 16px; }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
-    h2 { margin: 0 0 12px; font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center; }
-    .prayer-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
-    .prayer-item:last-child { border-bottom: none; }
-    input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent); cursor: pointer; }
-    input[type="date"], input[type="number"] { border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font-family: inherit; font-size: 0.95rem; }
-    input[type="number"] { width: 64px; text-align: center; font-weight: 600; }
-    .year-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
-    .year-row:last-child { border-bottom: none; }
-    .year-controls { display: flex; align-items: center; gap: 6px; }
-    button { background: var(--accent); color: white; border: none; padding: 10px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; }
-    button.sm { padding: 8px 12px; background: #e2e8f0; color: var(--text); }
-    button.del { padding: 4px 8px; background: transparent; color: #94a3b8; font-size: 1.1rem; }
-    .log-list { font-size: 0.85rem; color: #64748b; margin-top: 12px; padding-left: 18px; }
+    :root {
+      --bg: #eef5f2;
+      --card: #ffffff;
+      --row-bg: #f4f7f6;
+      --text: #1e293b;
+      --muted: #64748b;
+      --accent: #1e7145;
+      --accent-hover: #175936;
+      --badge-bg: #dcfce7;
+      --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 0 0 32px;
+    }
+
+    /* TOP BANNER */
+    .header {
+      background: linear-gradient(135deg, #1b4d3e 0%, #2d6a54 60%, #4b8b73 100%);
+      color: white;
+      padding: 24px 20px 44px;
+      position: relative;
+      overflow: hidden;
+    }
+    .header-content {
+      max-width: 440px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      position: relative;
+      z-index: 2;
+    }
+    .header-icon {
+      width: 44px;
+      height: 44px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      color: #fde68a;
+      flex-shrink: 0;
+    }
+    .header h1 { margin: 0; font-size: 1.35rem; font-weight: 700; letter-spacing: -0.01em; }
+    .header p { margin: 3px 0 0; font-size: 0.85rem; color: #d1fae5; }
+    .header-decor {
+      position: absolute;
+      right: 16px;
+      bottom: -6px;
+      opacity: 0.22;
+      pointer-events: none;
+    }
+
+    /* MAIN CONTAINER */
+    .container {
+      max-width: 440px;
+      margin: -24px auto 0;
+      padding: 0 16px;
+      position: relative;
+      z-index: 3;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 20px;
+      padding: 20px;
+      margin-bottom: 18px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+    }
+
+    /* CARD HEADERS */
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      gap: 8px;
+    }
+    .title-group { display: flex; align-items: center; gap: 10px; }
+    .section-badge {
+      width: 36px;
+      height: 36px;
+      background: #e6f4ea;
+      color: var(--accent);
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+    .card-title { margin: 0; font-size: 1.15rem; font-weight: 700; }
+    .card-sub { margin: 2px 0 0; font-size: 0.78rem; color: var(--muted); }
+
+    /* DATE CONTROLS */
+    .date-controls { display: flex; align-items: center; gap: 6px; }
+    input[type="date"] {
+      border: 1px solid var(--border);
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 6px 8px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      color: var(--text);
+      font-weight: 500;
+    }
+    .nav-btn {
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      color: var(--text);
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      font-weight: 600;
+      padding: 0;
+    }
+    .nav-btn:active { background: #f1f5f9; }
+
+    /* PRAYER ROWS */
+    .prayer-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--row-bg);
+      padding: 10px 14px;
+      border-radius: 14px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .prayer-item:last-child { margin-bottom: 0; }
+    .prayer-left { display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 0.98rem; }
+    .p-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+    }
+    .ic-subuh { background: #fef3c7; color: #d97706; }
+    .ic-zohor { background: #fef9c3; color: #ca8a04; }
+    .ic-asar  { background: #ffedd5; color: #ea580c; }
+    .ic-maghrib { background: #fce7f3; color: #db2777; }
+    .ic-isyak { background: #ede9fe; color: #7c3aed; }
+
+    input[type="checkbox"] {
+      width: 22px;
+      height: 22px;
+      accent-color: var(--accent);
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    /* GANTI PUASA SECTION */
+    .pill-badge {
+      background: var(--badge-bg);
+      color: var(--accent);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+    .year-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--row-bg);
+      padding: 10px 14px;
+      border-radius: 14px;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    .year-controls { display: flex; align-items: center; gap: 8px; }
+    input[type="number"] {
+      width: 68px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 6px;
+      text-align: center;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .unit-text { font-size: 0.85rem; color: var(--muted); font-weight: 500; }
+    .del-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 1.15rem;
+      cursor: pointer;
+      padding: 2px 4px;
+    }
+
+    /* INLINE ADD YEAR FORM */
+    .inline-add-box {
+      display: none;
+      gap: 8px;
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      padding: 10px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      align-items: center;
+    }
+    .inline-add-box.open { display: flex; }
+    .inline-add-box input {
+      flex: 1;
+      min-width: 0;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 0.9rem;
+    }
+
+    /* BOTTOM ACTION BUTTONS */
+    .action-row { display: flex; gap: 10px; margin-top: 14px; }
+    .btn-outline {
+      background: #ffffff;
+      color: var(--accent);
+      border: 1.5px solid #a7f3d0;
+      padding: 11px 14px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      flex: 1;
+      background: var(--accent);
+      color: #ffffff;
+      border: none;
+      padding: 11px 14px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .btn-primary:active { background: var(--accent-hover); }
+    .btn-save-yr {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .log-list {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin: 14px 0 0;
+      padding-left: 18px;
+    }
+    .log-list li { margin-bottom: 4px; }
   </style>
 </head>
 <body>
 
-  <!-- SOLAT CARD -->
-  <div class="card">
-    <h2>
-      <span>Solat</span>
-      <input type="date" id="datePicker">
-    </h2>
-    <div id="prayerList"></div>
-  </div>
-
-  <!-- GANTI PUASA CARD -->
-  <div class="card">
-    <h2>
-      <span>Ganti Puasa</span>
-      <span id="totalOwed">0 days left</span>
-    </h2>
-    <div id="yearList"></div>
-    <div style="margin-top: 14px; display: flex; gap: 8px;">
-      <button onclick="addYear()" class="sm">+ Year</button>
-      <button onclick="logFast()" style="flex: 1;">✓ Completed 1 Ganti Today</button>
+  <!-- TOP BANNER -->
+  <header class="header">
+    <div class="header-content">
+      <div class="header-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 3c-4 3-6 6-6 9v7h12v-7c0-3-2-6-6-9z"/><path d="M4 19h16"/><path d="M12 1v2"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Solat Tracker</h1>
+        <p>Track your daily prayers and make-up fasts</p>
+      </div>
     </div>
-    <ul id="fastLog" class="log-list"></ul>
-  </div>
+    <svg class="header-decor" width="140" height="80" viewBox="0 0 140 80" fill="white">
+      <circle cx="30" cy="20" r="8"/><path d="M90 80V45c0-10 8-18 15-22 7 4 15 12 15 22v35H90z"/><rect x="75" y="30" width="6" height="50"/><rect x="129" y="30" width="6" height="50"/>
+    </svg>
+  </header>
+
+  <main class="container">
+    <!-- SOLAT CARD -->
+    <section class="card">
+      <div class="card-header">
+        <div class="title-group">
+          <div class="section-badge">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 3c-4 3-6 6-6 9v7h12v-7c0-3-2-6-6-9z"/><path d="M4 19h16"/>
+            </svg>
+          </div>
+          <h2 class="card-title">Solat</h2>
+        </div>
+        <div class="date-controls">
+          <input type="date" id="datePicker">
+          <button class="nav-btn" onclick="shiftDate(-1)" title="Previous Day">&lsaquo;</button>
+          <button class="nav-btn" onclick="shiftDate(1)" title="Next Day">&rsaquo;</button>
+        </div>
+      </div>
+      <div id="prayerList"></div>
+    </section>
+
+    <!-- GANTI PUASA CARD -->
+    <section class="card">
+      <div class="card-header">
+        <div class="title-group">
+          <div class="section-badge">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="card-title">Ganti Puasa</h2>
+            <p class="card-sub">Record and track your make-up fasts</p>
+          </div>
+        </div>
+        <div class="pill-badge">
+          <span>&#9873;</span>
+          <span id="totalOwed">0 days left</span>
+        </div>
+      </div>
+
+      <div id="yearList"></div>
+
+      <!-- INLINE ADD YEAR INPUT -->
+      <div id="inlineYearBox" class="inline-add-box">
+        <input type="number" id="newYearInput" placeholder="Year (e.g. 2025)" min="1990" max="2100">
+        <input type="number" id="newDaysInput" placeholder="Days" min="0" style="max-width: 80px;">
+        <button class="btn-save-yr" onclick="confirmAddYear()">Add</button>
+        <button class="del-btn" onclick="toggleYearBox(false)">&times;</button>
+      </div>
+
+      <div class="action-row">
+        <button class="btn-outline" onclick="toggleYearBox()">+ Add Year</button>
+        <button class="btn-primary" onclick="logFast()">&#10003; Completed 1 Ganti Today</button>
+      </div>
+
+      <ul id="fastLog" class="log-list"></ul>
+    </section>
+  </main>
 
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js');
     }
 
-    const PRAYERS = ['Subuh', 'Zohor', 'Asar', 'Maghrib', 'Isyak'];
+    const PRAYERS = [
+      { name: 'Subuh', cls: 'ic-subuh', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M4.93 10.93l2.83 2.83M2 18h20M19.07 10.93l-2.83 2.83M8 18a4 4 0 0 1 8 0"/></svg>' },
+      { name: 'Zohor', cls: 'ic-zohor', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>' },
+      { name: 'Asar', cls: 'ic-asar', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>' },
+      { name: 'Maghrib', cls: 'ic-maghrib', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 10V2M4.93 10.93l2.83 2.83M2 18h20M19.07 10.93l-2.83 2.83M8 18a4 4 0 0 1 8 0"/></svg>' },
+      { name: 'Isyak', cls: 'ic-isyak', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>' }
+    ];
+
     let data = JSON.parse(localStorage.getItem('ibadahTracker')) || {
       solat: {},
       puasa: { years: { "2026": 0 }, log: [] }
@@ -63,9 +375,15 @@
 
     const datePicker = document.getElementById('datePicker');
     const today = new Date();
-    const localDate = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T');
-    datePicker.value = localDate;
+    datePicker.value = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
     datePicker.addEventListener('change', render);
+
+    function shiftDate(days) {
+      const curr = new Date(datePicker.value + 'T00:00:00');
+      curr.setDate(curr.getDate() + days);
+      datePicker.value = new Date(curr.getTime() - (curr.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+      render();
+    }
 
     function save(shouldRender = true) {
       localStorage.setItem('ibadahTracker', JSON.stringify(data));
@@ -80,8 +398,7 @@
     }
 
     function setYearDays(year, value) {
-      const num = Math.max(0, parseInt(value) || 0);
-      data.puasa.years[year] = num;
+      data.puasa.years[year] = Math.max(0, parseInt(value) || 0);
       save(false);
       updateTotalOnly();
     }
@@ -91,9 +408,24 @@
       document.getElementById('totalOwed').textContent = `${total} days left`;
     }
 
-    function addYear() {
-      const y = prompt("Enter Ramadan Year (e.g. 2025):");
-      if (y && !data.puasa.years[y]) { data.puasa.years[y] = 0; save(); }
+    function toggleYearBox(forceState) {
+      const box = document.getElementById('inlineYearBox');
+      const isOpen = forceState !== undefined ? forceState : !box.classList.contains('open');
+      box.classList.toggle('open', isOpen);
+      if (isOpen) {
+        document.getElementById('newYearInput').value = '';
+        document.getElementById('newDaysInput').value = '';
+        document.getElementById('newYearInput').focus();
+      }
+    }
+
+    function confirmAddYear() {
+      const y = document.getElementById('newYearInput').value.trim();
+      const d = Math.max(0, parseInt(document.getElementById('newDaysInput').value) || 0);
+      if (!y || y.length !== 4) return alert("Please enter a 4-digit year (e.g. 2025).");
+      data.puasa.years[y] = (data.puasa.years[y] || 0) + d;
+      toggleYearBox(false);
+      save();
     }
 
     function removeYear(year) {
@@ -117,8 +449,11 @@
       const dayData = data.solat[d] || {};
       document.getElementById('prayerList').innerHTML = PRAYERS.map(p => `
         <label class="prayer-item">
-          <span>${p}</span>
-          <input type="checkbox" ${dayData[p] ? 'checked' : ''} onchange="togglePrayer('${p}')">
+          <div class="prayer-left">
+            <span class="p-icon ${p.cls}">${p.icon}</span>
+            <span>${p.name}</span>
+          </div>
+          <input type="checkbox" ${dayData[p.name] ? 'checked' : ''} onchange="togglePrayer('${p.name}')">
         </label>
       `).join('');
 
@@ -129,8 +464,8 @@
             <span>Ramadan ${year}</span>
             <div class="year-controls">
               <input type="number" min="0" value="${count}" oninput="setYearDays('${year}', this.value)" onblur="render()">
-              <span style="font-size: 0.85rem; color: #64748b;">days</span>
-              <button class="del" onclick="removeYear('${year}')" title="Delete year">&times;</button>
+              <span class="unit-text">days</span>
+              <button class="del-btn" onclick="removeYear('${year}')" title="Delete year">&times;</button>
             </div>
           </div>
         `).join('');
