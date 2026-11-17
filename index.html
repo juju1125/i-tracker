@@ -207,8 +207,9 @@
       color: #94a3b8;
       font-size: 1.15rem;
       cursor: pointer;
-      padding: 2px 4px;
+      padding: 2px 6px;
     }
+    .del-btn:hover { color: #ef4444; }
 
     /* INLINE ADD YEAR FORM */
     .inline-add-box {
@@ -266,13 +267,62 @@
       cursor: pointer;
     }
 
-    .log-list {
-      font-size: 0.82rem;
-      color: var(--muted);
-      margin: 14px 0 0;
-      padding-left: 18px;
+    /* FASTING LOG TABLE */
+    .log-wrapper {
+      margin-top: 18px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
     }
-    .log-list li { margin-bottom: 4px; }
+    .log-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    .log-table th {
+      background: var(--row-bg);
+      color: var(--muted);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .log-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+    }
+    .log-table tr:last-child td { border-bottom: none; }
+    .col-no { width: 46px; font-weight: 700; color: var(--muted); }
+    .log-date-cell { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+    .log-date-input {
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 5px 8px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+      background: #ffffff;
+    }
+    .year-tag {
+      font-size: 0.75rem;
+      background: #e6f4ea;
+      color: var(--accent);
+      padding: 3px 7px;
+      border-radius: 6px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .empty-log {
+      text-align: center;
+      color: var(--muted);
+      padding: 14px;
+      font-size: 0.84rem;
+    }
   </style>
 </head>
 <body>
@@ -351,15 +401,22 @@
         <button class="btn-primary" onclick="logFast()">&#10003; Completed 1 Ganti Today</button>
       </div>
 
-      <ul id="fastLog" class="log-list"></ul>
+      <!-- NO. | TARIKH GANTI TABLE -->
+      <div class="log-wrapper">
+        <table class="log-table">
+          <thead>
+            <tr>
+              <th class="col-no">No.</th>
+              <th>Tarikh Ganti</th>
+            </tr>
+          </thead>
+          <tbody id="fastLogBody"></tbody>
+        </table>
+      </div>
     </section>
   </main>
 
   <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js');
-    }
-
     const PRAYERS = [
       { name: 'Subuh', cls: 'ic-subuh', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M4.93 10.93l2.83 2.83M2 18h20M19.07 10.93l-2.83 2.83M8 18a4 4 0 0 1 8 0"/></svg>' },
       { name: 'Zohor', cls: 'ic-zohor', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>' },
@@ -373,9 +430,20 @@
       puasa: { years: { "2026": 0 }, log: [] }
     };
 
+    if (Array.isArray(data.puasa.log)) {
+      data.puasa.log = data.puasa.log.map(item => {
+        if (typeof item === 'string') {
+          const match = item.match(/^(\d{4}-\d{2}-\d{2})\s*\(for\s*(\d{4})\)/);
+          return match ? { date: match[1], year: match[2] } : { date: item.slice(0, 10), year: '' };
+        }
+        return item;
+      });
+    }
+
     const datePicker = document.getElementById('datePicker');
     const today = new Date();
-    datePicker.value = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    const todayStr = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    datePicker.value = todayStr;
     datePicker.addEventListener('change', render);
 
     function shiftDate(days) {
@@ -440,8 +508,25 @@
       const targetYear = years.find(y => data.puasa.years[y] > 0);
       if (!targetYear) return alert("No remaining ganti days!");
       data.puasa.years[targetYear]--;
-      data.puasa.log.unshift(`${datePicker.value} (for ${targetYear})`);
+      data.puasa.log.unshift({ date: datePicker.value, year: targetYear });
       save();
+    }
+
+    function updateLogDate(index, newDate) {
+      if (!newDate) return;
+      data.puasa.log[index].date = newDate;
+      save(false);
+    }
+
+    function removeLog(index) {
+      const entry = data.puasa.log[index];
+      if (confirm(`Delete entry for ${entry.date}?`)) {
+        if (entry.year && data.puasa.years[entry.year] !== undefined) {
+          data.puasa.years[entry.year]++;
+        }
+        data.puasa.log.splice(index, 1);
+        save();
+      }
     }
 
     function render() {
@@ -471,9 +556,26 @@
         `).join('');
 
       updateTotalOnly();
-      document.getElementById('fastLog').innerHTML = data.puasa.log
-        .slice(0, 5)
-        .map(entry => `<li>Fast completed: ${entry}</li>`).join('');
+
+      const tbody = document.getElementById('fastLogBody');
+      if (data.puasa.log.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="2" class="empty-log">No ganti fasts recorded yet.</td></tr>`;
+      } else {
+        tbody.innerHTML = data.puasa.log.map((entry, idx) => `
+          <tr>
+            <td class="col-no">${idx + 1}</td>
+            <td>
+              <div class="log-date-cell">
+                <input type="date" class="log-date-input" value="${entry.date}" onchange="updateLogDate(${idx}, this.value)">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  ${entry.year ? `<span class="year-tag">${entry.year}</span>` : ''}
+                  <button class="del-btn" onclick="removeLog(${idx})" title="Undo log">&times;</button>
+                </div>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      }
     }
 
     render();
