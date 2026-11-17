@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#059669">
+  <title>Solat & Ganti Tracker</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    :root { --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --accent: #059669; --border: #e2e8f0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); max-width: 420px; margin: 0 auto; padding: 16px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
+    h2 { margin: 0 0 12px; font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center; }
+    .prayer-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
+    .prayer-item:last-child { border-bottom: none; }
+    input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent); cursor: pointer; }
+    input[type="date"] { border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font-family: inherit; }
+    .year-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; }
+    button { background: var(--accent); color: white; border: none; padding: 10px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+    button.sm { padding: 4px 10px; background: #e2e8f0; color: var(--text); }
+    .log-list { font-size: 0.85rem; color: #64748b; margin-top: 12px; padding-left: 18px; }
+  </style>
+</head>
+<body>
+
+  <!-- SOLAT CARD -->
+  <div class="card">
+    <h2>
+      <span>Solat</span>
+      <input type="date" id="datePicker">
+    </h2>
+    <div id="prayerList"></div>
+  </div>
+
+  <!-- GANTI PUASA CARD -->
+  <div class="card">
+    <h2>
+      <span>Ganti Puasa</span>
+      <span id="totalOwed">0 days left</span>
+    </h2>
+    <div id="yearList"></div>
+    <div style="margin-top: 12px; display: flex; gap: 8px;">
+      <button onclick="addYear()" class="sm">+ Add Year</button>
+      <button onclick="logFast()" style="flex: 1;">✓ Completed 1 Ganti Today</button>
+    </div>
+    <ul id="fastLog" class="log-list"></ul>
+  </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js');
+    }
+
+    const PRAYERS = ['Subuh', 'Zohor', 'Asar', 'Maghrib', 'Isyak'];
+    let data = JSON.parse(localStorage.getItem('ibadahTracker')) || {
+      solat: {},
+      puasa: { years: { "2026": 0 }, log: [] }
+    };
+
+    const datePicker = document.getElementById('datePicker');
+    const today = new Date();
+    const localDate = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T');
+    datePicker.value = localDate;
+    datePicker.addEventListener('change', render);
+
+    function save() {
+      localStorage.setItem('ibadahTracker', JSON.stringify(data));
+      render();
+    }
+
+    function togglePrayer(prayer) {
+      const d = datePicker.value;
+      if (!data.solat[d]) data.solat[d] = {};
+      data.solat[d][prayer] = !data.solat[d][prayer];
+      save();
+    }
+
+    function updateYear(year, delta) {
+      data.puasa.years[year] = Math.max(0, (data.puasa.years[year] || 0) + delta);
+      save();
+    }
+
+    function addYear() {
+      const y = prompt("Enter Ramadan Year (e.g. 2025):");
+      if (y && !data.puasa.years[y]) { data.puasa.years[y] = 1; save(); }
+    }
+
+    function logFast() {
+      const years = Object.keys(data.puasa.years).sort();
+      const targetYear = years.find(y => data.puasa.years[y] > 0);
+      if (!targetYear) return alert("No remaining ganti days!");
+      data.puasa.years[targetYear]--;
+      data.puasa.log.unshift(`${datePicker.value} (for ${targetYear})`);
+      save();
+    }
+
+    function render() {
+      const d = datePicker.value;
+      const dayData = data.solat[d] || {};
+      document.getElementById('prayerList').innerHTML = PRAYERS.map(p => `
+        <label class="prayer-item">
+          <span>${p}</span>
+          <input type="checkbox" ${dayData[p] ? 'checked' : ''} onchange="togglePrayer('${p}')">
+        </label>
+      `).join('');
+
+      let total = 0;
+      document.getElementById('yearList').innerHTML = Object.entries(data.puasa.years)
+        .sort(([a], [b]) => a - b)
+        .map(([year, count]) => {
+          total += count;
+          return `
+            <div class="year-row">
+              <span>Ramadan ${year}: <strong>${count}</strong> days</span>
+              <div>
+                <button class="sm" onclick="updateYear('${year}', -1)">-</button>
+                <button class="sm" onclick="updateYear('${year}', 1)">+</button>
+              </div>
+            </div>`;
+        }).join('');
+
+      document.getElementById('totalOwed').textContent = `${total} days left`;
+      document.getElementById('fastLog').innerHTML = data.puasa.log
+        .slice(0, 5)
+        .map(entry => `<li>Fast completed: ${entry}</li>`).join('');
+    }
+
+    render();
+  </script>
+</body>
+</html>
