@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ibadah-v1';
+const CACHE_NAME = 'ibadah-v2';
 const ASSETS = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', (e) => {
