@@ -14,10 +14,14 @@
     .prayer-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
     .prayer-item:last-child { border-bottom: none; }
     input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent); cursor: pointer; }
-    input[type="date"] { border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font-family: inherit; }
-    .year-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; }
+    input[type="date"], input[type="number"] { border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font-family: inherit; font-size: 0.95rem; }
+    input[type="number"] { width: 64px; text-align: center; font-weight: 600; }
+    .year-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+    .year-row:last-child { border-bottom: none; }
+    .year-controls { display: flex; align-items: center; gap: 6px; }
     button { background: var(--accent); color: white; border: none; padding: 10px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; }
-    button.sm { padding: 4px 10px; background: #e2e8f0; color: var(--text); }
+    button.sm { padding: 8px 12px; background: #e2e8f0; color: var(--text); }
+    button.del { padding: 4px 8px; background: transparent; color: #94a3b8; font-size: 1.1rem; }
     .log-list { font-size: 0.85rem; color: #64748b; margin-top: 12px; padding-left: 18px; }
   </style>
 </head>
@@ -39,8 +43,8 @@
       <span id="totalOwed">0 days left</span>
     </h2>
     <div id="yearList"></div>
-    <div style="margin-top: 12px; display: flex; gap: 8px;">
-      <button onclick="addYear()" class="sm">+ Add Year</button>
+    <div style="margin-top: 14px; display: flex; gap: 8px;">
+      <button onclick="addYear()" class="sm">+ Year</button>
       <button onclick="logFast()" style="flex: 1;">✓ Completed 1 Ganti Today</button>
     </div>
     <ul id="fastLog" class="log-list"></ul>
@@ -63,9 +67,9 @@
     datePicker.value = localDate;
     datePicker.addEventListener('change', render);
 
-    function save() {
+    function save(shouldRender = true) {
       localStorage.setItem('ibadahTracker', JSON.stringify(data));
-      render();
+      if (shouldRender) render();
     }
 
     function togglePrayer(prayer) {
@@ -75,14 +79,28 @@
       save();
     }
 
-    function updateYear(year, delta) {
-      data.puasa.years[year] = Math.max(0, (data.puasa.years[year] || 0) + delta);
-      save();
+    function setYearDays(year, value) {
+      const num = Math.max(0, parseInt(value) || 0);
+      data.puasa.years[year] = num;
+      save(false);
+      updateTotalOnly();
+    }
+
+    function updateTotalOnly() {
+      const total = Object.values(data.puasa.years).reduce((sum, val) => sum + val, 0);
+      document.getElementById('totalOwed').textContent = `${total} days left`;
     }
 
     function addYear() {
       const y = prompt("Enter Ramadan Year (e.g. 2025):");
-      if (y && !data.puasa.years[y]) { data.puasa.years[y] = 1; save(); }
+      if (y && !data.puasa.years[y]) { data.puasa.years[y] = 0; save(); }
+    }
+
+    function removeYear(year) {
+      if (confirm(`Remove Ramadan ${year}?`)) {
+        delete data.puasa.years[year];
+        save();
+      }
     }
 
     function logFast() {
@@ -104,22 +122,20 @@
         </label>
       `).join('');
 
-      let total = 0;
       document.getElementById('yearList').innerHTML = Object.entries(data.puasa.years)
         .sort(([a], [b]) => a - b)
-        .map(([year, count]) => {
-          total += count;
-          return `
-            <div class="year-row">
-              <span>Ramadan ${year}: <strong>${count}</strong> days</span>
-              <div>
-                <button class="sm" onclick="updateYear('${year}', -1)">-</button>
-                <button class="sm" onclick="updateYear('${year}', 1)">+</button>
-              </div>
-            </div>`;
-        }).join('');
+        .map(([year, count]) => `
+          <div class="year-row">
+            <span>Ramadan ${year}</span>
+            <div class="year-controls">
+              <input type="number" min="0" value="${count}" oninput="setYearDays('${year}', this.value)" onblur="render()">
+              <span style="font-size: 0.85rem; color: #64748b;">days</span>
+              <button class="del" onclick="removeYear('${year}')" title="Delete year">&times;</button>
+            </div>
+          </div>
+        `).join('');
 
-      document.getElementById('totalOwed').textContent = `${total} days left`;
+      updateTotalOnly();
       document.getElementById('fastLog').innerHTML = data.puasa.log
         .slice(0, 5)
         .map(entry => `<li>Fast completed: ${entry}</li>`).join('');
